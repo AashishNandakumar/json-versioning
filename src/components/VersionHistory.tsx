@@ -72,7 +72,31 @@ const VersionHistory = ({
   };
 
   if (loading) {
-    return <div className="p-4">Loading version history...</div>;
+    return (
+      <div className="bg-white h-full">
+        <h2 className="text-xl font-semibold p-4 bg-slate-100">
+          Version History
+        </h2>
+        <div className="p-4">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+            <span className="text-slate-600">Loading version history...</span>
+          </div>
+          {/* Skeleton loading animation */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="p-3 mb-2 border rounded animate-pulse">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="h-5 bg-slate-200 rounded w-32 mb-2"></div>
+                  <div className="h-4 bg-slate-200 rounded w-24"></div>
+                </div>
+                <div className="h-8 bg-slate-200 rounded w-16"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {

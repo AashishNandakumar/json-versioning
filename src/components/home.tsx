@@ -19,6 +19,7 @@ function Home() {
     null,
   );
   const [documents, setDocuments] = useState<JsonDocument[]>([]);
+  const [loadingDocuments, setLoadingDocuments] = useState<boolean>(false);
   const [showDocumentSelector, setShowDocumentSelector] =
     useState<boolean>(true);
   const [initialContent, setInitialContent] = useState<string>(
@@ -44,12 +45,15 @@ function Home() {
   // Fetch available documents when component mounts
   useEffect(() => {
     const fetchDocuments = async () => {
+      setLoadingDocuments(true);
       try {
         const docs = await getDocuments();
         setDocuments(docs);
       } catch (error) {
         console.error("Error fetching documents:", error);
         // TODO: Add proper error handling UI
+      } finally {
+        setLoadingDocuments(false);
       }
     };
 
@@ -113,7 +117,28 @@ function Home() {
               </Button>
             </div>
 
-            {documents.length > 0 ? (
+            {loadingDocuments ? (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">
+                  Loading documents...
+                </h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {/* Skeleton loading animation */}
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="p-4 border rounded-md animate-pulse flex justify-between items-center"
+                    >
+                      <div className="w-full">
+                        <div className="h-5 bg-slate-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                      </div>
+                      <div className="h-5 w-5 bg-slate-200 rounded-full"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : documents.length > 0 ? (
               <div>
                 <h3 className="text-lg font-semibold mb-4">
                   Or select an existing document:

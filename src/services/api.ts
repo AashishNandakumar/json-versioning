@@ -2,6 +2,16 @@ import axios from "axios";
 import { JsonDocument, JsonVersion } from "../types";
 import { create } from "jsondiffpatch";
 
+/**
+ * API Service Module
+ *
+ * This module provides functions for interacting with the JSON document versioning API.
+ * It currently uses a mock implementation for demonstration purposes, but is designed
+ * to be easily replaced with real API calls in a production environment.
+ *
+ * @module api
+ */
+
 // In a real application, this would be an environment variable
 const API_URL = "https://jsonplaceholder.typicode.com";
 
@@ -124,7 +134,18 @@ const initializeExamples = () => {
 // Initialize examples
 initializeExamples();
 
-// Create a new document
+/**
+ * Creates a new JSON document with the provided content.
+ *
+ * @param content - The initial JSON content for the document as a string
+ * @returns A Promise that resolves to the created JsonDocument object
+ *
+ * @example
+ * // Create a new document with some initial content
+ * const initialContent = JSON.stringify({ name: "Example", value: 42 }, null, 2);
+ * const newDocument = await createDocument(initialContent);
+ * console.log("Created document with ID:", newDocument.id);
+ */
 export const createDocument = async (
   content: string,
 ): Promise<JsonDocument> => {
@@ -156,7 +177,16 @@ export const createDocument = async (
   }
 };
 
-// Get all documents
+/**
+ * Retrieves all documents available to the current user.
+ *
+ * @returns A Promise that resolves to an array of JsonDocument objects
+ *
+ * @example
+ * // Fetch all documents
+ * const documents = await getDocuments();
+ * console.log(`Found ${documents.length} documents`);
+ */
 export const getDocuments = async (): Promise<JsonDocument[]> => {
   try {
     // In a real app, this would be an API call to your backend
@@ -177,7 +207,22 @@ export const getDocuments = async (): Promise<JsonDocument[]> => {
   }
 };
 
-// Get a document by ID
+/**
+ * Retrieves a specific document by its ID.
+ *
+ * @param id - The unique identifier of the document to retrieve
+ * @returns A Promise that resolves to the requested JsonDocument object
+ * @throws Error if the document is not found or the user doesn't have access
+ *
+ * @example
+ * // Fetch a specific document
+ * try {
+ *   const document = await getDocument("doc-123");
+ *   console.log("Document content:", document.content);
+ * } catch (error) {
+ *   console.error("Failed to fetch document:", error);
+ * }
+ */
 export const getDocument = async (id: string): Promise<JsonDocument> => {
   try {
     // In a real app, this would be an API call to your backend
@@ -202,7 +247,25 @@ export const getDocument = async (id: string): Promise<JsonDocument> => {
   }
 };
 
-// Create a new version
+/**
+ * Creates a new version of a document with the provided content.
+ *
+ * This function automatically generates a diff between the current document content
+ * and the new content being saved. The diff is stored with the version to enable
+ * efficient comparison and merging operations.
+ *
+ * @param documentId - The ID of the document to create a version for
+ * @param content - The new content for this version as a string
+ * @param isAutoSave - Boolean flag indicating if this is an automatic save (true) or manual save (false)
+ * @returns A Promise that resolves to the created JsonVersion object
+ * @throws Error if the document is not found or the user doesn't have permission
+ *
+ * @example
+ * // Create a new version of a document
+ * const newContent = JSON.stringify({ name: "Updated Example", value: 43 }, null, 2);
+ * const newVersion = await createVersion("doc-123", newContent, false);
+ * console.log("Created version with ID:", newVersion.id);
+ */
 export const createVersion = async (
   documentId: string,
   content: string,
@@ -257,7 +320,26 @@ export const createVersion = async (
   }
 };
 
-// Get all versions for a document
+/**
+ * Retrieves all versions for a specific document.
+ *
+ * The versions are typically returned in chronological order, with the most recent versions first.
+ * Each version contains the full content at that point in time, as well as metadata about when
+ * it was created and whether it was an auto-save or manual save.
+ *
+ * @param documentId - The ID of the document to retrieve versions for
+ * @returns A Promise that resolves to an array of JsonVersion objects
+ * @throws Error if the document is not found or the user doesn't have permission
+ *
+ * @example
+ * // Fetch all versions of a document
+ * try {
+ *   const versions = await getVersions("doc-123");
+ *   console.log(`Document has ${versions.length} versions`);
+ * } catch (error) {
+ *   console.error("Failed to fetch versions:", error);
+ * }
+ */
 export const getVersions = async (
   documentId: string,
 ): Promise<JsonVersion[]> => {
@@ -281,7 +363,27 @@ export const getVersions = async (
   }
 };
 
-// Merge a version into the current document
+/**
+ * Merges a specific version into the current document.
+ *
+ * This operation takes the content from the specified version and makes it the current
+ * content of the document. It also creates a new version that represents this merge operation,
+ * with metadata indicating which version was merged.
+ *
+ * @param documentId - The ID of the document to merge a version into
+ * @param versionId - The ID of the version to merge into the current document
+ * @returns A Promise that resolves to the updated JsonDocument object
+ * @throws Error if the document or version is not found, or if the user doesn't have permission
+ *
+ * @example
+ * // Merge a specific version into the current document
+ * try {
+ *   const updatedDocument = await mergeVersions("doc-123", "version-456");
+ *   console.log("Document updated with merged content:", updatedDocument.content);
+ * } catch (error) {
+ *   console.error("Failed to merge version:", error);
+ * }
+ */
 export const mergeVersions = async (
   documentId: string,
   versionId: string,
@@ -337,7 +439,23 @@ export const mergeVersions = async (
   }
 };
 
-// Get a specific version
+/**
+ * Retrieves a specific version of a document.
+ *
+ * @param documentId - The ID of the document the version belongs to
+ * @param versionId - The ID of the specific version to retrieve
+ * @returns A Promise that resolves to the requested JsonVersion object
+ * @throws Error if the document or version is not found, or if the user doesn't have permission
+ *
+ * @example
+ * // Fetch a specific version of a document
+ * try {
+ *   const version = await getVersion("doc-123", "version-456");
+ *   console.log("Version content:", version.content);
+ * } catch (error) {
+ *   console.error("Failed to fetch version:", error);
+ * }
+ */
 export const getVersion = async (
   documentId: string,
   versionId: string,

@@ -19,6 +19,8 @@ const JsonEditor = ({
   const [error, setError] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [isCreatingDocument, setIsCreatingDocument] = useState<boolean>(false);
   const [currentDocumentId, setCurrentDocumentId] = useState<
     string | undefined
   >(documentId);
@@ -43,15 +45,19 @@ const JsonEditor = ({
   useEffect(() => {
     const initializeDocument = async () => {
       if (!currentDocumentId) {
+        setIsCreatingDocument(true);
         try {
           const newDocument = await createDocument(initialContent);
           setCurrentDocumentId(newDocument.id);
           if (onSave) {
             onSave(newDocument.id);
           }
+          setError(null);
         } catch (err) {
           console.error("Failed to create document:", err);
           setError("Failed to create document");
+        } finally {
+          setIsCreatingDocument(false);
         }
       }
     };
@@ -117,10 +123,20 @@ const JsonEditor = ({
     if (!currentDocumentId || !isValid) return;
 
     setIsSaving(true);
+    setSaveSuccess(false);
     try {
       await createVersion(currentDocumentId, content, isAutoSave);
       lastSavedContentRef.current = content;
       hasChangesRef.current = false;
+      setError(null);
+
+      if (!isAutoSave) {
+        setSaveSuccess(true);
+        // Reset success message after 3 seconds
+        setTimeout(() => {
+          setSaveSuccess(false);
+        }, 3000);
+      }
     } catch (err) {
       console.error("Failed to save version:", err);
       setError("Failed to save version");
@@ -169,6 +185,17 @@ const JsonEditor = ({
         <div>
           <h2 className="text-xl font-semibold">JSON Editor</h2>
           {error && <p className="text-red-500 text-sm">{error}</p>}
+          {saveSuccess && (
+            <p className="text-green-600 text-sm">
+              ✓ Version saved successfully
+            </p>
+          )}
+          {isCreatingDocument && (
+            <p className="text-blue-500 text-sm flex items-center">
+              <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>{" "}
+              Creating document...
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <input
@@ -191,7 +218,14 @@ const JsonEditor = ({
             onClick={handleSave}
             disabled={!isValid || isSaving || !hasChangesRef.current}
           >
-            {isSaving ? "Saving..." : "Save Version"}
+            {isSaving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              "Save Version"
+            )}
           </Button>
         </div>
       </div>

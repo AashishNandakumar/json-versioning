@@ -21,6 +21,7 @@ const DiffViewer = ({ version }: DiffViewerProps) => {
   const [error, setError] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(0.8); // Default zoom level
   const [merging, setMerging] = useState<boolean>(false);
+  const [mergeSuccess, setMergeSuccess] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchCurrentContent = async () => {
@@ -62,8 +63,9 @@ const DiffViewer = ({ version }: DiffViewerProps) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-white">
-        <p>Loading...</p>
+      <div className="flex flex-col items-center justify-center h-full bg-white p-4">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-600">Loading document content...</p>
       </div>
     );
   }
@@ -142,12 +144,19 @@ const DiffViewer = ({ version }: DiffViewerProps) => {
     if (!version) return;
 
     setMerging(true);
+    setMergeSuccess(false);
     try {
       await mergeVersions(version.documentId, version.id);
       // Refresh the current content after merge
       const document = await getDocument(version.documentId);
       setCurrentContent(document.content);
       setError(null);
+      setMergeSuccess(true);
+
+      // Reset success message after 3 seconds
+      setTimeout(() => {
+        setMergeSuccess(false);
+      }, 3000);
     } catch (err) {
       console.error("Failed to merge versions:", err);
       setError("Failed to merge versions");
@@ -183,16 +192,31 @@ const DiffViewer = ({ version }: DiffViewerProps) => {
             <Plus className="h-4 w-4" />
           </Button>
           {version && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMergeVersions}
-              disabled={merging}
-              className="ml-4"
-            >
-              <GitMerge className="h-4 w-4 mr-2" />
-              {merging ? "Merging..." : "Merge Version"}
-            </Button>
+            <div className="flex items-center ml-4">
+              {mergeSuccess && (
+                <span className="text-green-600 text-sm mr-2">
+                  ✓ Merged successfully
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMergeVersions}
+                disabled={merging}
+              >
+                {merging ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Merging...
+                  </>
+                ) : (
+                  <>
+                    <GitMerge className="h-4 w-4 mr-2" />
+                    Merge Version
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </div>
       </div>
