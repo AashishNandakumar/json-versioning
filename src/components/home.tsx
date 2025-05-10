@@ -15,6 +15,7 @@ import { getDocuments, getDocument, getVersions } from "../services/api";
 
 function Home() {
   const [documentId, setDocumentId] = useState<string | undefined>(undefined);
+  const [currentVersionId, setCurrentVersionId] = useState<string | undefined>(undefined);
   const [selectedVersion, setSelectedVersion] = useState<JsonVersion | null>(
     null,
   );
@@ -64,11 +65,18 @@ function Home() {
     fetchDocuments();
   }, []);
 
-  const handleDocumentSave = (id: string) => {
+  const handleDocumentSave = async (id: string) => {
     console.log("Document saved with ID:", id);
     setDocumentId(id);
     setShowDocumentSelector(false);
     fetchDocuments(); // Refresh after creating a new document
+    // Fetch latest version for the new document
+    const versions = await getVersions(id);
+    if (versions && versions.length > 0) {
+      // Sort by createdAt descending
+      const sortedVersions = versions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setCurrentVersionId(sortedVersions[0].id);
+    }
   };
 
   const handleCreateNewDocument = () => {
@@ -80,42 +88,32 @@ function Home() {
     try {
       // Fetch the document to get its name
       const document = await getDocument(id);
-
       // Fetch all versions to get the latest one
       const versions = await getVersions(id);
-
       let contentToUse = document.content;
-
       if (versions && versions.length > 0) {
         // Sort versions by date (newest first)
-        const sortedVersions = versions.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
-
+        const sortedVersions = versions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         // Use the content from the latest version (HEAD)
         console.log("Using latest version content", sortedVersions[0].id);
         contentToUse = sortedVersions[0].content;
+        setCurrentVersionId(sortedVersions[0].id);
       } else {
         // If no versions exist, use the document's content
         console.log("No versions found, using document content");
+        setCurrentVersionId(undefined);
       }
-
       // Set all state variables AFTER we have the data
       setInitialContent(contentToUse);
       setInitialDocumentName(document.name);
       setDocumentId(id);
       setShowDocumentSelector(false);
-
-      console.log(
-        "Document loaded with content:",
-        contentToUse.substring(0, 50) + "...",
-      );
+      console.log("Document loaded with content:", contentToUse.substring(0, 50) + "...");
     } catch (error) {
       console.error("Error fetching document or versions:", error);
-      // Only set document ID and hide selector if we couldn't fetch content
       setDocumentId(id);
       setShowDocumentSelector(false);
+      setCurrentVersionId(undefined);
     }
   };
 
@@ -228,6 +226,8 @@ function Home() {
                 documentId={documentId}
                 initialContent={initialContent}
                 initialName={initialDocumentName}
+                currentVersionId={currentVersionId}
+                setCurrentVersionId={setCurrentVersionId}
                 onSave={handleDocumentSave}
                 onVersionCreated={handleVersionCreated}
                 onDocumentsChanged={handleDocumentNameUpdated}

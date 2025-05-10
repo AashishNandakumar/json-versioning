@@ -5,6 +5,8 @@ import {
   createDocument,
   createVersion,
   updateDocumentName,
+  getVersion,
+  getVersions,
 } from "../services/api";
 import { Upload, Edit } from "lucide-react";
 
@@ -12,6 +14,8 @@ interface JsonEditorProps {
   documentId?: string;
   initialContent?: string;
   initialName?: string;
+  currentVersionId?: string;
+  setCurrentVersionId?: (id: string) => void;
   onSave?: (documentId: string) => void;
   onVersionCreated?: () => void;
   onDocumentsChanged?: () => void;
@@ -21,6 +25,8 @@ const JsonEditor = ({
   documentId,
   initialContent = "{}",
   initialName = "Untitled Document",
+  currentVersionId,
+  setCurrentVersionId,
   onSave,
   onVersionCreated,
   onDocumentsChanged,
@@ -74,12 +80,10 @@ const JsonEditor = ({
             initialContent,
             documentName,
           );
+          const versions = await getVersions(newDocument.id);
           setCurrentDocumentId(newDocument.id);
           if (onSave) {
             onSave(newDocument.id);
-          }
-          if (onDocumentsChanged) {
-            onDocumentsChanged(); // Refresh document list after creation
           }
           setError(null);
         } catch (err) {
@@ -101,8 +105,8 @@ const JsonEditor = ({
     }
 
     autoSaveTimerRef.current = window.setInterval(() => {
-      if (currentDocumentId && hasChangesRef.current && isValid) {
-        saveVersion(true);
+      if (currentVersionId && hasChangesRef.current && isValid) {
+        updateCurrentVersion();
       }
     }, 30000); // Auto-save every 30 seconds
 
@@ -111,7 +115,7 @@ const JsonEditor = ({
         window.clearInterval(autoSaveTimerRef.current);
       }
     };
-  }, [currentDocumentId, isValid]);
+  }, [currentVersionId, isValid]);
 
   const validateJson = (value: string): boolean => {
     try {
@@ -154,7 +158,10 @@ const JsonEditor = ({
     setIsSaving(true);
     setSaveSuccess(false);
     try {
-      await createVersion(currentDocumentId, content, isAutoSave);
+      const newVersion = await createVersion(currentDocumentId, content, isAutoSave);
+      if (!isAutoSave && setCurrentVersionId) {
+        setCurrentVersionId(newVersion.id);
+      }
       lastSavedContentRef.current = content;
       hasChangesRef.current = false;
       setError(null);
@@ -174,6 +181,29 @@ const JsonEditor = ({
     } catch (err) {
       console.error("Failed to save version:", err);
       setError("Failed to save version");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Update the current version without creating a new one (for auto-save)
+  const updateCurrentVersion = async () => {
+    if (!currentVersionId || !isValid) return;
+    setIsSaving(true);
+    try {
+      // Call backend to update version content
+      await fetch(`/api/versions/${currentVersionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      lastSavedContentRef.current = content;
+      hasChangesRef.current = false;
+      setError(null);
+      console.log("Auto-saved changes to current version");
+    } catch (err) {
+      console.error("Failed to auto-save changes:", err);
+      // Don't show error to user for auto-save failures
     } finally {
       setIsSaving(false);
     }
@@ -229,21 +259,22 @@ const JsonEditor = ({
                 onKeyDown={async (e) => {
                   if (e.key === "Enter") {
                     setIsEditingName(false);
-                    console.log("Saving document name:", currentDocumentId, documentName);
                     await updateDocumentName(currentDocumentId, documentName);
                     if (onDocumentsChanged) {
-                      onDocumentsChanged(); // Refresh document list after renaming
+                      onDocumentsChanged();
                     }
                   }
                 }}
               />
               {/* <button
                 onClick={async () => {
-                  console.log("Saving document name:", currentDocumentId, documentName);
                   setIsEditingName(false);
                   if (currentDocumentId) {
                     try {
                       await updateDocumentName(currentDocumentId, documentName);
+                      if (onDocumentsChanged) {
+                        onDocumentsChanged();
+                      }
                     } catch (err) {
                       console.error("Failed to update document name:", err);
                       setError("Failed to update document name");
@@ -307,6 +338,11 @@ const JsonEditor = ({
               "Save Version"
             )}
           </Button>
+          {hasChangesRef.current && (
+            <span className="text-xs text-slate-500 self-center ml-2">
+              Auto-save enabled (30s)
+            </span>
+          )}
         </div>
       </div>
       <div className="flex-grow">
