@@ -51,6 +51,24 @@ const DiffViewer = ({ version }: DiffViewerProps) => {
     };
 
     fetchCurrentContent();
+
+    // Listen for merge events to update content
+    const handleMergeEvent = (event: CustomEvent) => {
+      if (version && event.detail.documentId === version.documentId) {
+        console.log("Merge event detected in DiffViewer, refreshing content");
+        fetchCurrentContent();
+      }
+    };
+
+    window.addEventListener("versionMerged", handleMergeEvent as EventListener);
+
+    // Clean up event listener on unmount
+    return () => {
+      window.removeEventListener(
+        "versionMerged",
+        handleMergeEvent as EventListener,
+      );
+    };
   }, [version?.id]); // Use version.id as dependency to ensure re-fetch when version changes
 
   if (!version) {
@@ -152,6 +170,12 @@ const DiffViewer = ({ version }: DiffViewerProps) => {
       setCurrentContent(document.content);
       setError(null);
       setMergeSuccess(true);
+
+      // Trigger a custom event to notify other components about the merge
+      const mergeEvent = new CustomEvent("versionMerged", {
+        detail: { documentId: version.documentId },
+      });
+      window.dispatchEvent(mergeEvent);
 
       // Reset success message after 3 seconds
       setTimeout(() => {

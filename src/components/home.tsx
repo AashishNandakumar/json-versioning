@@ -11,7 +11,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "./ui/resizable";
-import { getDocuments } from "../services/api";
+import { getDocuments, getDocument, getVersions } from "../services/api";
 
 function Home() {
   const [documentId, setDocumentId] = useState<string | undefined>(undefined);
@@ -40,33 +40,35 @@ function Home() {
       2,
     ),
   );
+  const [initialDocumentName, setInitialDocumentName] =
+    useState<string>("New JSON Document");
   const [versionRefreshKey, setVersionRefreshKey] = useState(false);
   const { user, logout } = useAuth();
 
-  // Fetch available documents when component mounts
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      setLoadingDocuments(true);
-      try {
-        const docs = await getDocuments();
-        setDocuments(docs);
-      } catch (error) {
-        console.error("Error fetching documents:", error);
-        // TODO: Add proper error handling UI
-      } finally {
-        setLoadingDocuments(false);
-      }
-    };
+  // Fetch available documents (moved outside useEffect for reuse)
+  const fetchDocuments = async () => {
+    setLoadingDocuments(true);
+    try {
+      const docs = await getDocuments();
+      setDocuments(docs);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      // TODO: Add proper error handling UI
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
 
+  // Fetch documents on mount
+  useEffect(() => {
     fetchDocuments();
-    // In a real app, you might want to refresh this list periodically
-    // or when certain actions are performed
   }, []);
 
   const handleDocumentSave = (id: string) => {
     console.log("Document saved with ID:", id);
     setDocumentId(id);
     setShowDocumentSelector(false);
+    fetchDocuments(); // Refresh after creating a new document
   };
 
   const handleCreateNewDocument = () => {
@@ -74,11 +76,47 @@ function Home() {
     setShowDocumentSelector(false);
   };
 
-  const handleSelectDocument = (id: string) => {
-    setDocumentId(id);
-    setShowDocumentSelector(false);
-    // TODO: In a real app, fetch the document content here and set it as initialContent
-    // This would require an API call to get the document by ID
+  const handleSelectDocument = async (id: string) => {
+    try {
+      // Fetch the document to get its name
+      const document = await getDocument(id);
+
+      // Fetch all versions to get the latest one
+      const versions = await getVersions(id);
+
+      let contentToUse = document.content;
+
+      if (versions && versions.length > 0) {
+        // Sort versions by date (newest first)
+        const sortedVersions = versions.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+
+        // Use the content from the latest version (HEAD)
+        console.log("Using latest version content", sortedVersions[0].id);
+        contentToUse = sortedVersions[0].content;
+      } else {
+        // If no versions exist, use the document's content
+        console.log("No versions found, using document content");
+      }
+
+      // Set all state variables AFTER we have the data
+      setInitialContent(contentToUse);
+      setInitialDocumentName(document.name);
+      setDocumentId(id);
+      setShowDocumentSelector(false);
+
+      console.log(
+        "Document loaded with content:",
+        contentToUse.substring(0, 50) + "...",
+      );
+    } catch (error) {
+      console.error("Error fetching document or versions:", error);
+      // Only set document ID and hide selector if we couldn't fetch content
+      setDocumentId(id);
+      setShowDocumentSelector(false);
+    }
   };
 
   const handleSelectVersion = (version: JsonVersion) => {
@@ -86,7 +124,13 @@ function Home() {
   };
 
   const handleVersionCreated = () => {
+    // Trigger refresh of version history once
     setVersionRefreshKey((prev) => !prev);
+  };
+
+  // New: handle document name update
+  const handleDocumentNameUpdated = () => {
+    fetchDocuments(); // Refresh after renaming a document
   };
 
   return (
@@ -156,10 +200,13 @@ function Home() {
                       onClick={() => handleSelectDocument(doc.id)}
                     >
                       <div>
-                        <p className="font-medium">Document ID: {doc.id}</p>
+                        <p className="font-medium">
+                          {doc.name || "Untitled Document"}
+                        </p>
                         <p className="text-sm text-gray-500">
                           Created: {new Date(doc.createdAt).toLocaleString()}
                         </p>
+                        <p className="text-xs text-gray-400">ID: {doc.id}</p>
                       </div>
                       <FolderOpen className="h-5 w-5 text-blue-500" />
                     </div>
@@ -180,8 +227,10 @@ function Home() {
               <JsonEditor
                 documentId={documentId}
                 initialContent={initialContent}
+                initialName={initialDocumentName}
                 onSave={handleDocumentSave}
                 onVersionCreated={handleVersionCreated}
+                onDocumentsChanged={handleDocumentNameUpdated}
               />
             </ResizablePanel>
 

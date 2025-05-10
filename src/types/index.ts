@@ -1,5 +1,6 @@
 export interface JsonDocument {
   id: string;
+  name: string;
   content: string;
   createdAt: string;
   userId?: string; // Added for authentication
@@ -14,4 +15,5 @@ export interface JsonVersion {
   userId?: string; // Added for authentication
   diff?: any; // Store jsondiffpatch diff output
   mergedFrom?: string; // ID of the version that was merged, if this version is a result of a merge
+  parentId?: string; // Reference to the parent version
 }

@@ -3,6 +3,8 @@ import { getVersions } from "../services/api";
 import { JsonVersion } from "../types";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import VersionGraph from "./VersionGraph";
 
 interface VersionHistoryProps {
   documentId: string;
@@ -21,7 +23,9 @@ const VersionHistory = ({
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
     null,
   );
+  const [activeTab, setActiveTab] = useState<string>("list");
 
+  // Set up event listeners for updates
   useEffect(() => {
     const fetchVersions = async () => {
       if (!documentId) {
@@ -44,7 +48,7 @@ const VersionHistory = ({
             documentId,
           );
         }
-        // console.log("VersionHistory: Setting versions:", fetchedVersions);
+
         setVersions(
           fetchedVersions.sort(
             (a, b) =>
@@ -61,6 +65,24 @@ const VersionHistory = ({
     };
 
     fetchVersions();
+
+    // Listen for merge events
+    const handleMergeEvent = (event: CustomEvent) => {
+      if (event.detail.documentId === documentId) {
+        console.log("Merge event detected, refreshing versions");
+        fetchVersions();
+      }
+    };
+
+    window.addEventListener("versionMerged", handleMergeEvent as EventListener);
+
+    // Clean up event listener on unmount
+    return () => {
+      window.removeEventListener(
+        "versionMerged",
+        handleMergeEvent as EventListener,
+      );
+    };
   }, [documentId, refreshKey]);
 
   const handleSelectVersion = (version: JsonVersion) => {
@@ -111,41 +133,78 @@ const VersionHistory = ({
 
   return (
     <div className="bg-white h-full">
-      <h2 className="text-xl font-semibold p-4 bg-slate-100">
-        Version History
-      </h2>
-      <ScrollArea className="h-[calc(100%-3rem)]">
-        <div className="p-2">
-          {versions.map((version) => (
-            <div
-              key={version.id}
-              className={`p-3 mb-2 border rounded cursor-pointer ${selectedVersionId === version.id ? "bg-blue-100 border-blue-300" : "hover:bg-slate-50"}`}
-              onClick={() => handleSelectVersion(version)}
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="font-medium">
-                    {formatDate(version.createdAt)}
-                  </div>
-                  <div className="text-sm text-slate-500">
-                    {version.isAutoSave ? "Auto-saved" : "Manual save"}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectVersion(version);
-                  }}
-                >
-                  View
-                </Button>
-              </div>
-            </div>
-          ))}
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="h-full flex flex-col"
+      >
+        <div className="bg-slate-100 p-2">
+          <div className="flex justify-between items-center mb-1">
+            <h2 className="text-xl font-semibold px-2">Version History</h2>
+          </div>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="list">List View</TabsTrigger>
+            <TabsTrigger value="graph">Graph View</TabsTrigger>
+          </TabsList>
         </div>
-      </ScrollArea>
+
+        <TabsContent
+          value="list"
+          className="flex-grow overflow-hidden m-0 border-0"
+        >
+          <ScrollArea className="h-full">
+            <div className="p-2">
+              {versions.map((version, index) => {
+                const isHead = index === 0; // First version is the HEAD (most recent)
+                return (
+                  <div
+                    key={version.id}
+                    className={`p-3 mb-2 border rounded cursor-pointer ${selectedVersionId === version.id ? "bg-blue-100 border-blue-300" : "hover:bg-slate-50"} ${isHead ? "border-green-500 border-2" : ""}`}
+                    onClick={() => handleSelectVersion(version)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium flex items-center">
+                          {isHead && (
+                            <span className="inline-flex items-center justify-center px-2 py-1 mr-2 text-xs font-bold leading-none text-white bg-green-600 rounded">
+                              HEAD
+                            </span>
+                          )}
+                          {formatDate(version.createdAt)}
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          {version.isAutoSave ? "Auto-saved" : "Manual save"}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectVersion(version);
+                        }}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent
+          value="graph"
+          className="flex-grow overflow-hidden m-0 border-0"
+        >
+          <VersionGraph
+            versions={versions}
+            selectedVersionId={selectedVersionId}
+            onSelectVersion={handleSelectVersion}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

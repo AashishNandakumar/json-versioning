@@ -1,23 +1,37 @@
 import { useEffect, useState, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import { Button } from "./ui/button";
-import { createDocument, createVersion } from "../services/api";
-import { Upload } from "lucide-react";
+import {
+  createDocument,
+  createVersion,
+  updateDocumentName,
+} from "../services/api";
+import { Upload, Edit } from "lucide-react";
 
 interface JsonEditorProps {
   documentId?: string;
   initialContent?: string;
+  initialName?: string;
   onSave?: (documentId: string) => void;
   onVersionCreated?: () => void;
+  onDocumentsChanged?: () => void;
 }
 
 const JsonEditor = ({
   documentId,
   initialContent = "{}",
+  initialName = "Untitled Document",
   onSave,
   onVersionCreated,
+  onDocumentsChanged,
 }: JsonEditorProps) => {
+  console.log(
+    "JsonEditor rendered with initialContent:",
+    initialContent.substring(0, 50) + "...",
+  );
   const [content, setContent] = useState<string>(initialContent);
+  const [documentName, setDocumentName] = useState<string>(initialName);
+  const [isEditingName, setIsEditingName] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -30,18 +44,25 @@ const JsonEditor = ({
   const lastSavedContentRef = useRef<string>(initialContent);
   const hasChangesRef = useRef<boolean>(false);
 
-  // Format JSON on initial load
+  // Format JSON on initial load or when initialContent changes
   useEffect(() => {
     try {
       if (initialContent) {
         const parsed = JSON.parse(initialContent);
         const formatted = JSON.stringify(parsed, null, 2);
         setContent(formatted);
+        // Reset the last saved content reference to match the new initial content
+        lastSavedContentRef.current = formatted;
+        hasChangesRef.current = false;
       }
     } catch (err) {
       console.error("Error formatting initial JSON:", err);
+      // If parsing fails, still update the content
+      setContent(initialContent);
+      lastSavedContentRef.current = initialContent;
+      hasChangesRef.current = false;
     }
-  }, []);
+  }, [initialContent]);
 
   // Initialize document if none exists
   useEffect(() => {
@@ -49,10 +70,16 @@ const JsonEditor = ({
       if (!currentDocumentId) {
         setIsCreatingDocument(true);
         try {
-          const newDocument = await createDocument(initialContent);
+          const newDocument = await createDocument(
+            initialContent,
+            documentName,
+          );
           setCurrentDocumentId(newDocument.id);
           if (onSave) {
             onSave(newDocument.id);
+          }
+          if (onDocumentsChanged) {
+            onDocumentsChanged(); // Refresh document list after creation
           }
           setError(null);
         } catch (err) {
@@ -65,7 +92,7 @@ const JsonEditor = ({
     };
 
     initializeDocument();
-  }, [currentDocumentId, initialContent, onSave]);
+  }, [currentDocumentId, documentName, onSave]);
 
   // Set up auto-save timer
   useEffect(() => {
@@ -132,13 +159,17 @@ const JsonEditor = ({
       hasChangesRef.current = false;
       setError(null);
 
-      if (onVersionCreated) onVersionCreated();
-
       if (!isAutoSave) {
         setSaveSuccess(true);
+        // Reset success message after 3 seconds
         setTimeout(() => {
           setSaveSuccess(false);
         }, 3000);
+
+        // Notify parent component that a new version was created
+        if (onVersionCreated) {
+          onVersionCreated();
+        }
       }
     } catch (err) {
       console.error("Failed to save version:", err);
@@ -186,7 +217,53 @@ const JsonEditor = ({
     <div className="flex flex-col h-full bg-white">
       <div className="flex justify-between items-center p-4 bg-slate-100">
         <div>
-          <h2 className="text-xl font-semibold">JSON Editor</h2>
+          {isEditingName ? (
+            <div className="flex items-center">
+              <input
+                type="text"
+                value={documentName}
+                onChange={(e) => setDocumentName(e.target.value)}
+                className="text-xl font-semibold border border-blue-300 rounded px-2 py-1 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+                onBlur={() => setIsEditingName(false)}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter") {
+                    setIsEditingName(false);
+                    console.log("Saving document name:", currentDocumentId, documentName);
+                    await updateDocumentName(currentDocumentId, documentName);
+                    if (onDocumentsChanged) {
+                      onDocumentsChanged(); // Refresh document list after renaming
+                    }
+                  }
+                }}
+              />
+              {/* <button
+                onClick={async () => {
+                  console.log("Saving document name:", currentDocumentId, documentName);
+                  setIsEditingName(false);
+                  if (currentDocumentId) {
+                    try {
+                      await updateDocumentName(currentDocumentId, documentName);
+                    } catch (err) {
+                      console.error("Failed to update document name:", err);
+                      setError("Failed to update document name");
+                    }
+                  }
+                }}
+                className="text-blue-500 hover:text-blue-700"
+              >
+                Save
+              </button> */}
+            </div>
+          ) : (
+            <h2
+              className="text-xl font-semibold cursor-pointer hover:text-blue-600 flex items-center"
+              onClick={() => setIsEditingName(true)}
+            >
+              {documentName}
+              <Edit className="h-4 w-4 ml-2 text-gray-500" />
+            </h2>
+          )}
           {error && <p className="text-red-500 text-sm">{error}</p>}
           {saveSuccess && (
             <p className="text-green-600 text-sm">
