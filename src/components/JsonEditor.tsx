@@ -8,12 +8,14 @@ interface JsonEditorProps {
   documentId?: string;
   initialContent?: string;
   onSave?: (documentId: string) => void;
+  onVersionCreated?: () => void;
 }
 
 const JsonEditor = ({
   documentId,
   initialContent = "{}",
   onSave,
+  onVersionCreated,
 }: JsonEditorProps) => {
   const [content, setContent] = useState<string>(initialContent);
   const [error, setError] = useState<string | null>(null);
@@ -130,9 +132,10 @@ const JsonEditor = ({
       hasChangesRef.current = false;
       setError(null);
 
+      if (onVersionCreated) onVersionCreated();
+
       if (!isAutoSave) {
         setSaveSuccess(true);
-        // Reset success message after 3 seconds
         setTimeout(() => {
           setSaveSuccess(false);
         }, 3000);

@@ -13,7 +13,7 @@ import { create } from "jsondiffpatch";
  */
 
 // In a real application, this would be an environment variable
-const API_URL = "https://jsonplaceholder.typicode.com";
+const API_URL = "http://localhost:5000/api";
 
 // Mock implementation for demo purposes
 let documents: JsonDocument[] = [];
@@ -150,27 +150,12 @@ export const createDocument = async (
   content: string,
 ): Promise<JsonDocument> => {
   try {
-    // In a real app, this would be an API call to your backend
-    // const response = await axios.post(`${API_URL}/documents`, { content });
-    // return response.data;
-
-    // TODO: BACKEND INTEGRATION
-    // 1. Make an authenticated API call to create a new document
-    // 2. Send the content to the server
-    // 3. Handle validation on the server side
-    // 4. Return the created document with its ID
-    // 5. Add metadata like title, description, tags, etc.
-
-    const newDocument: JsonDocument = {
-      id: generateId(),
-      content,
-      createdAt: new Date().toISOString(),
-    };
-
-    documents = [...documents, newDocument];
-    currentDocumentId = newDocument.id;
-
-    return newDocument;
+    const response = await axios.post(`${API_URL}/documents`, { content });
+    return response.data;
+    // Mock implementation:
+    // const newDocument: JsonDocument = { ... };
+    // documents = [...documents, newDocument];
+    // return newDocument;
   } catch (error) {
     console.error("Error creating document:", error);
     throw error;
@@ -189,18 +174,10 @@ export const createDocument = async (
  */
 export const getDocuments = async (): Promise<JsonDocument[]> => {
   try {
-    // In a real app, this would be an API call to your backend
-    // const response = await axios.get(`${API_URL}/documents`);
-    // return response.data;
-
-    // TODO: BACKEND INTEGRATION
-    // 1. Make an authenticated API call to fetch all documents for the current user
-    // 2. Handle pagination if there are many documents
-    // 3. Add filtering options (by date, name, etc.)
-    // 4. Add sorting options
-
-    console.log("Fetching all documents");
-    return documents;
+    const response = await axios.get(`${API_URL}/documents`);
+    return response.data;
+    // Mock implementation:
+    // return documents;
   } catch (error) {
     console.error("Error fetching documents:", error);
     throw error;
@@ -225,22 +202,12 @@ export const getDocuments = async (): Promise<JsonDocument[]> => {
  */
 export const getDocument = async (id: string): Promise<JsonDocument> => {
   try {
-    // In a real app, this would be an API call to your backend
-    // const response = await axios.get(`${API_URL}/documents/${id}`);
-    // return response.data;
-
-    // TODO: BACKEND INTEGRATION
-    // 1. Make an authenticated API call to fetch a specific document
-    // 2. Ensure the user has permission to access this document
-    // 3. Return the document with its content and metadata
-    // 4. Handle not found errors appropriately
-
-    const document = documents.find((doc) => doc.id === id);
-    if (!document) {
-      throw new Error("Document not found");
-    }
-
-    return document;
+    const response = await axios.get(`${API_URL}/documents/${id}`);
+    return response.data;
+    // Mock implementation:
+    // const document = documents.find((doc) => doc.id === id);
+    // if (!document) throw new Error("Document not found");
+    // return document;
   } catch (error) {
     console.error(`Error fetching document ${id}:`, error);
     throw error;
@@ -272,48 +239,10 @@ export const createVersion = async (
   isAutoSave: boolean,
 ): Promise<JsonVersion> => {
   try {
-    // In a real app, this would be an API call
-    // const response = await axios.post(`${API_URL}/documents/${documentId}/versions`, { content, isAutoSave });
-    // return response.data;
-
-    // Get the previous version of the document
-    const document = documents.find((doc) => doc.id === documentId);
-    if (!document) {
-      throw new Error("Document not found");
-    }
-
-    // Parse the JSON content
-    let oldContent;
-    let newContent;
-    try {
-      oldContent = JSON.parse(document.content);
-      newContent = JSON.parse(content);
-    } catch (e) {
-      // If parsing fails, treat as plain text
-      oldContent = document.content;
-      newContent = content;
-    }
-
-    // Generate diff using jsondiffpatch
-    const diff = jsondiffpatch.diff(oldContent, newContent);
-
-    const newVersion: JsonVersion = {
-      id: generateId(),
-      documentId,
-      content,
-      createdAt: new Date().toISOString(),
-      isAutoSave,
-      diff: diff,
-    };
-
-    versions = [...versions, newVersion];
-
-    // Update the document content
-    documents = documents.map((doc) =>
-      doc.id === documentId ? { ...doc, content } : doc,
-    );
-
-    return newVersion;
+    const response = await axios.post(`${API_URL}/documents/${documentId}/versions`, { content, isAutoSave });
+    return response.data;
+    // Mock implementation:
+    // ...
   } catch (error) {
     console.error("Error creating version:", error);
     throw error;
@@ -344,19 +273,10 @@ export const getVersions = async (
   documentId: string,
 ): Promise<JsonVersion[]> => {
   try {
-    // In a real app, this would be an API call
-    // const response = await axios.get(`${API_URL}/documents/${documentId}/versions`);
-    // return response.data;
-
-    console.log("Fetching versions for document ID:", documentId);
-    console.log("Available versions:", versions);
-
-    const filteredVersions = versions.filter(
-      (version) => version.documentId === documentId,
-    );
-    console.log("Filtered versions:", filteredVersions);
-
-    return filteredVersions;
+    const response = await axios.get(`${API_URL}/documents/${documentId}/versions`);
+    return response.data;
+    // Mock implementation:
+    // ...
   } catch (error) {
     console.error(`Error fetching versions for document ${documentId}:`, error);
     throw error;
@@ -389,50 +309,10 @@ export const mergeVersions = async (
   versionId: string,
 ): Promise<JsonDocument> => {
   try {
-    // In a real app, this would be an API call to your backend
-    // const response = await axios.post(`${API_URL}/documents/${documentId}/versions/${versionId}/merge`);
-    // return response.data;
-
-    // TODO: BACKEND INTEGRATION
-    // 1. Make an authenticated API call to merge the specified version into the current document
-    // 2. The backend should:
-    //    a. Get the specified version content
-    //    b. Update the current document with this content
-    //    c. Create a new version that represents the merge
-    //    d. Add metadata about the merge (which version was merged, by whom, etc.)
-    // 3. Handle conflicts if they arise during the merge
-    // 4. Return the updated document
-
-    // For the mock implementation, we'll simply update the document with the version content
-    const version = versions.find(
-      (v) => v.documentId === documentId && v.id === versionId,
-    );
-    if (!version) {
-      throw new Error("Version not found");
-    }
-
-    // Update the document with the version content
-    const document = documents.find((doc) => doc.id === documentId);
-    if (!document) {
-      throw new Error("Document not found");
-    }
-
-    // Update the document content
-    document.content = version.content;
-
-    // Create a new version that represents the merge
-    const newVersion: JsonVersion = {
-      id: generateId(),
-      documentId,
-      content: version.content,
-      createdAt: new Date().toISOString(),
-      isAutoSave: false,
-      mergedFrom: versionId, // Add metadata about the merge
-    };
-
-    versions.push(newVersion);
-
-    return document;
+    const response = await axios.post(`${API_URL}/documents/${documentId}/versions/${versionId}/merge`);
+    return response.data;
+    // Mock implementation:
+    // ...
   } catch (error) {
     console.error(`Error merging version ${versionId}:`, error);
     throw error;
@@ -461,18 +341,10 @@ export const getVersion = async (
   versionId: string,
 ): Promise<JsonVersion> => {
   try {
-    // In a real app, this would be an API call
-    // const response = await axios.get(`${API_URL}/documents/${documentId}/versions/${versionId}`);
-    // return response.data;
-
-    const version = versions.find(
-      (v) => v.documentId === documentId && v.id === versionId,
-    );
-    if (!version) {
-      throw new Error("Version not found");
-    }
-
-    return version;
+    const response = await axios.get(`${API_URL}/documents/${documentId}/versions/${versionId}`);
+    return response.data;
+    // Mock implementation:
+    // ...
   } catch (error) {
     console.error(`Error fetching version ${versionId}:`, error);
     throw error;

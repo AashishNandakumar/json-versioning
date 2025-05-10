@@ -7,11 +7,13 @@ import { ScrollArea } from "./ui/scroll-area";
 interface VersionHistoryProps {
   documentId: string;
   onSelectVersion: (version: JsonVersion) => void;
+  refreshKey?: boolean;
 }
 
 const VersionHistory = ({
   documentId,
   onSelectVersion,
+  refreshKey,
 }: VersionHistoryProps) => {
   const [versions, setVersions] = useState<JsonVersion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -42,7 +44,7 @@ const VersionHistory = ({
             documentId,
           );
         }
-
+        // console.log("VersionHistory: Setting versions:", fetchedVersions);
         setVersions(
           fetchedVersions.sort(
             (a, b) =>
@@ -59,7 +61,7 @@ const VersionHistory = ({
     };
 
     fetchVersions();
-  }, [documentId]);
+  }, [documentId, refreshKey]);
 
   const handleSelectVersion = (version: JsonVersion) => {
     setSelectedVersionId(version.id);

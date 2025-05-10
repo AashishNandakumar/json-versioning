@@ -40,6 +40,7 @@ function Home() {
       2,
     ),
   );
+  const [versionRefreshKey, setVersionRefreshKey] = useState(false);
   const { user, logout } = useAuth();
 
   // Fetch available documents when component mounts
@@ -82,6 +83,10 @@ function Home() {
 
   const handleSelectVersion = (version: JsonVersion) => {
     setSelectedVersion(version);
+  };
+
+  const handleVersionCreated = () => {
+    setVersionRefreshKey((prev) => !prev);
   };
 
   return (
@@ -176,6 +181,7 @@ function Home() {
                 documentId={documentId}
                 initialContent={initialContent}
                 onSave={handleDocumentSave}
+                onVersionCreated={handleVersionCreated}
               />
             </ResizablePanel>
 
@@ -188,6 +194,7 @@ function Home() {
                     <VersionHistory
                       documentId={documentId}
                       onSelectVersion={handleSelectVersion}
+                      refreshKey={versionRefreshKey}
                     />
                   )}
                 </ResizablePanel>
