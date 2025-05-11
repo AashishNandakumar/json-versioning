@@ -13,7 +13,7 @@ import { create } from "jsondiffpatch";
  */
 
 // In a real application, this would be an environment variable
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Helper to get JWT token from cookies
 function getAuthToken(): string | null {
