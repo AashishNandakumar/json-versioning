@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import ReactDiffViewer from "react-diff-viewer-continued";
 import { JsonVersion } from "../types";
-import { getDocument, mergeVersions } from "../services/api";
+import { getDocument, getVersions, mergeVersions } from "../services/api";
 import { create } from "jsondiffpatch";
 import { Button } from "./ui/button";
 import { Minus, Plus, GitMerge } from "lucide-react";
 
 interface DiffViewerProps {
   version: JsonVersion | null;
+  refreshKey: boolean;
 }
 
-const DiffViewer = ({ version }: DiffViewerProps) => {
+const DiffViewer = ({ version, refreshKey }: DiffViewerProps) => {
   // Create jsondiffpatch instance
   const jsondiffpatch = create({
     objectHash: (obj: any) => obj.id || JSON.stringify(obj),
@@ -38,9 +39,12 @@ const DiffViewer = ({ version }: DiffViewerProps) => {
       );
       setLoading(true);
       try {
-        const document = await getDocument(version.documentId);
-        console.log("DiffViewer: Fetched current document:", document);
-        setCurrentContent(document.content);
+        // const document = await getDocument(version.documentId);
+        const versions = await getVersions(version.documentId);
+        const headVersion = versions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+        console.log("DiffViewer: Fetched current document:", headVersion);
+        setCurrentContent(headVersion.content);
         setError(null);
       } catch (err) {
         console.error("Failed to fetch current document:", err);
@@ -62,14 +66,14 @@ const DiffViewer = ({ version }: DiffViewerProps) => {
 
     window.addEventListener("versionMerged", handleMergeEvent as EventListener);
 
-    // Clean up event listener on unmount
+    // Clean up event listener on unmoun
     return () => {
       window.removeEventListener(
         "versionMerged",
         handleMergeEvent as EventListener,
       );
     };
-  }, [version?.id]); // Use version.id as dependency to ensure re-fetch when version changes
+  }, [version?.id, refreshKey]); // Use version.id as dependency to ensure re-fetch when version changes
 
   if (!version) {
     return (

@@ -44,6 +44,7 @@ function Home() {
   const [initialDocumentName, setInitialDocumentName] =
     useState<string>("New JSON Document");
   const [versionRefreshKey, setVersionRefreshKey] = useState(false);
+  const [toBeUpdatedVersionId, setToBeUpdatedVersionId] = useState<string | null>(null);
   const { user, logout } = useAuth();
 
   // Fetch available documents (moved outside useEffect for reuse)
@@ -231,6 +232,9 @@ function Home() {
                 onSave={handleDocumentSave}
                 onVersionCreated={handleVersionCreated}
                 onDocumentsChanged={handleDocumentNameUpdated}
+                toBeUpdatedVersionId={toBeUpdatedVersionId}
+                setRefreshKey={setVersionRefreshKey}
+                refreshKey={versionRefreshKey}
               />
             </ResizablePanel>
 
@@ -244,6 +248,7 @@ function Home() {
                       documentId={documentId}
                       onSelectVersion={handleSelectVersion}
                       refreshKey={versionRefreshKey}
+                      setToBeUpdatedVersionId={setToBeUpdatedVersionId}
                     />
                   )}
                 </ResizablePanel>
@@ -251,7 +256,7 @@ function Home() {
                 <ResizableHandle />
 
                 <ResizablePanel defaultSize={50}>
-                  <DiffViewer version={selectedVersion} />
+                  <DiffViewer version={selectedVersion} refreshKey={versionRefreshKey} />
                 </ResizablePanel>
               </ResizablePanelGroup>
             </ResizablePanel>

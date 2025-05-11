@@ -59,185 +59,185 @@ const jsondiffpatch = create({
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
 // Initialize with example document and versions
-const initializeExamples = () => {
-  // Reset collections to ensure clean state
-  documents = [];
-  versions = [];
+// const initializeExamples = () => {
+//   // Reset collections to ensure clean state
+//   documents = [];
+//   versions = [];
 
-  if (documents.length === 0) {
-    // Create an example document
-    const exampleDocument: JsonDocument = {
-      id: "example-doc-1",
-      name: "Example JSON Document",
-      content: JSON.stringify(
-        {
-          name: "Example JSON",
-          version: 1,
-          properties: {
-            active: true,
-            count: 42,
-          },
-          items: [
-            { id: 1, label: "Item 1" },
-            { id: 2, label: "Item 2" },
-          ],
-        },
-        null,
-        2,
-      ),
-      createdAt: new Date().toISOString(),
-    };
-    documents.push(exampleDocument);
-    currentDocumentId = exampleDocument.id;
+//   if (documents.length === 0) {
+//     // Create an example document
+//     const exampleDocument: JsonDocument = {
+//       id: "example-doc-1",
+//       name: "Example JSON Document",
+//       content: JSON.stringify(
+//         {
+//           name: "Example JSON",
+//           version: 1,
+//           properties: {
+//             active: true,
+//             count: 42,
+//           },
+//           items: [
+//             { id: 1, label: "Item 1" },
+//             { id: 2, label: "Item 2" },
+//           ],
+//         },
+//         null,
+//         2,
+//       ),
+//       createdAt: new Date().toISOString(),
+//     };
+//     documents.push(exampleDocument);
+//     currentDocumentId = exampleDocument.id;
 
-    // Create two example versions
-    const version1Content = JSON.stringify(
-      {
-        name: "Example JSON",
-        version: 1,
-        properties: {
-          active: true,
-          count: 42,
-        },
-        items: [
-          { id: 1, label: "Item 1" },
-          { id: 2, label: "Item 2" },
-        ],
-      },
-      null,
-      2,
-    );
+//     // Create two example versions
+//     const version1Content = JSON.stringify(
+//       {
+//         name: "Example JSON",
+//         version: 1,
+//         properties: {
+//           active: true,
+//           count: 42,
+//         },
+//         items: [
+//           { id: 1, label: "Item 1" },
+//           { id: 2, label: "Item 2" },
+//         ],
+//       },
+//       null,
+//       2,
+//     );
 
-    const version2Content = JSON.stringify(
-      {
-        name: "Updated Example",
-        version: 2,
-        properties: {
-          active: true,
-          count: 50,
-          newProperty: "added",
-        },
-        items: [
-          { id: 1, label: "Item 1 Updated" },
-          { id: 2, label: "Item 2" },
-          { id: 3, label: "Item 3" },
-        ],
-      },
-      null,
-      2,
-    );
+//     const version2Content = JSON.stringify(
+//       {
+//         name: "Updated Example",
+//         version: 2,
+//         properties: {
+//           active: true,
+//           count: 50,
+//           newProperty: "added",
+//         },
+//         items: [
+//           { id: 1, label: "Item 1 Updated" },
+//           { id: 2, label: "Item 2" },
+//           { id: 3, label: "Item 3" },
+//         ],
+//       },
+//       null,
+//       2,
+//     );
 
-    // Create first version (base version)
-    const version1: JsonVersion = {
-      id: "example-version-1",
-      documentId: exampleDocument.id,
-      content: version1Content,
-      createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      isAutoSave: false,
-    };
-    versions.push(version1);
+//     // Create first version (base version)
+//     const version1: JsonVersion = {
+//       id: "example-version-1",
+//       documentId: exampleDocument.id,
+//       content: version1Content,
+//       createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+//       isAutoSave: false,
+//     };
+//     versions.push(version1);
 
-    // Create second version with diff
-    try {
-      const oldContent = JSON.parse(version1Content);
-      const newContent = JSON.parse(version2Content);
-      const diff = jsondiffpatch.diff(oldContent, newContent);
+//     // Create second version with diff
+//     try {
+//       const oldContent = JSON.parse(version1Content);
+//       const newContent = JSON.parse(version2Content);
+//       const diff = jsondiffpatch.diff(oldContent, newContent);
 
-      const version2: JsonVersion = {
-        id: "example-version-2",
-        documentId: exampleDocument.id,
-        content: version2Content,
-        createdAt: new Date().toISOString(),
-        isAutoSave: false,
-        diff: diff,
-        parentId: "example-version-1",
-      };
-      versions.push(version2);
+//       const version2: JsonVersion = {
+//         id: "example-version-2",
+//         documentId: exampleDocument.id,
+//         content: version2Content,
+//         createdAt: new Date().toISOString(),
+//         isAutoSave: false,
+//         diff: diff,
+//         parentId: "example-version-1",
+//       };
+//       versions.push(version2);
 
-      // Create a third version with merge
-      const version3Content = JSON.stringify(
-        {
-          name: "Merged Example",
-          version: 3,
-          properties: {
-            active: true,
-            count: 55,
-            newProperty: "modified",
-            additionalProp: true,
-          },
-          items: [
-            { id: 1, label: "Item 1 Updated" },
-            { id: 2, label: "Item 2 Modified" },
-            { id: 3, label: "Item 3" },
-            { id: 4, label: "Item 4" },
-          ],
-        },
-        null,
-        2,
-      );
+//       // Create a third version with merge
+//       const version3Content = JSON.stringify(
+//         {
+//           name: "Merged Example",
+//           version: 3,
+//           properties: {
+//             active: true,
+//             count: 55,
+//             newProperty: "modified",
+//             additionalProp: true,
+//           },
+//           items: [
+//             { id: 1, label: "Item 1 Updated" },
+//             { id: 2, label: "Item 2 Modified" },
+//             { id: 3, label: "Item 3" },
+//             { id: 4, label: "Item 4" },
+//           ],
+//         },
+//         null,
+//         2,
+//       );
 
-      const newContentForV3 = JSON.parse(version3Content);
-      const diffForV3 = jsondiffpatch.diff(newContent, newContentForV3);
+//       const newContentForV3 = JSON.parse(version3Content);
+//       const diffForV3 = jsondiffpatch.diff(newContent, newContentForV3);
 
-      const version3: JsonVersion = {
-        id: "example-version-3",
-        documentId: exampleDocument.id,
-        content: version3Content,
-        createdAt: new Date().toISOString(),
-        isAutoSave: false,
-        diff: diffForV3,
-        parentId: "example-version-2",
-      };
-      versions.push(version3);
+//       const version3: JsonVersion = {
+//         id: "example-version-3",
+//         documentId: exampleDocument.id,
+//         content: version3Content,
+//         createdAt: new Date().toISOString(),
+//         isAutoSave: false,
+//         diff: diffForV3,
+//         parentId: "example-version-2",
+//       };
+//       versions.push(version3);
 
-      // Create a fourth version that's a merge
-      const version4Content = JSON.stringify(
-        {
-          name: "Merged Example",
-          version: 4,
-          properties: {
-            active: true,
-            count: 60,
-            newProperty: "modified",
-            additionalProp: true,
-            mergedProp: "from version 1",
-          },
-          items: [
-            { id: 1, label: "Item 1 Updated" },
-            { id: 2, label: "Item 2 Modified" },
-            { id: 3, label: "Item 3 Enhanced" },
-            { id: 4, label: "Item 4" },
-          ],
-        },
-        null,
-        2,
-      );
+//       // Create a fourth version that's a merge
+//       const version4Content = JSON.stringify(
+//         {
+//           name: "Merged Example",
+//           version: 4,
+//           properties: {
+//             active: true,
+//             count: 60,
+//             newProperty: "modified",
+//             additionalProp: true,
+//             mergedProp: "from version 1",
+//           },
+//           items: [
+//             { id: 1, label: "Item 1 Updated" },
+//             { id: 2, label: "Item 2 Modified" },
+//             { id: 3, label: "Item 3 Enhanced" },
+//             { id: 4, label: "Item 4" },
+//           ],
+//         },
+//         null,
+//         2,
+//       );
 
-      const newContentForV4 = JSON.parse(version4Content);
-      const diffForV4 = jsondiffpatch.diff(newContentForV3, newContentForV4);
+//       const newContentForV4 = JSON.parse(version4Content);
+//       const diffForV4 = jsondiffpatch.diff(newContentForV3, newContentForV4);
 
-      const version4: JsonVersion = {
-        id: "example-version-4",
-        documentId: exampleDocument.id,
-        content: version4Content,
-        createdAt: new Date().toISOString(),
-        isAutoSave: false,
-        diff: diffForV4,
-        parentId: "example-version-3",
-        mergedFrom: "example-version-1", // This version merges in changes from version 1
-      };
-      versions.push(version4);
+//       const version4: JsonVersion = {
+//         id: "example-version-4",
+//         documentId: exampleDocument.id,
+//         content: version4Content,
+//         createdAt: new Date().toISOString(),
+//         isAutoSave: false,
+//         diff: diffForV4,
+//         parentId: "example-version-3",
+//         mergedFrom: "example-version-1", // This version merges in changes from version 1
+//       };
+//       versions.push(version4);
 
-      // Update the document to the latest version
-      exampleDocument.content = version4Content;
-    } catch (e) {
-      console.error("Error creating example versions:", e);
-    }
-  }
-};
+//       // Update the document to the latest version
+//       exampleDocument.content = version4Content;
+//     } catch (e) {
+//       console.error("Error creating example versions:", e);
+//     }
+//   }
+// };
 
-// Initialize examples
-initializeExamples();
+// // Initialize examples
+// initializeExamples();
 
 /**
  * Creates a new JSON document with the provided content.
@@ -406,13 +406,13 @@ export const createVersion = async (
  * @throws Error if the document is not found or the user doesn't have permission
  */
 export const updateCurrentVersion = async (
-  documentId: string,
+  versionId: string,
   content: string,
 ): Promise<JsonDocument> => {
   try {
-    console.log("Updating current version:", documentId, content);
+    console.log("Updating current version:", versionId, content);
     const response = await api.put(
-      `/documents/${documentId}/current-version`,
+      `/documents/versions/${versionId}`,
       { content },
     );
     console.log("Updated current version:", response.data);

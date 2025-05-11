@@ -5,8 +5,8 @@ import {
   createDocument,
   createVersion,
   updateDocumentName,
-  getVersion,
   getVersions,
+  updateCurrentVersion,
 } from "../services/api";
 import { Upload, Edit } from "lucide-react";
 
@@ -19,6 +19,9 @@ interface JsonEditorProps {
   onSave?: (documentId: string) => void;
   onVersionCreated?: () => void;
   onDocumentsChanged?: () => void;
+  toBeUpdatedVersionId?: string;
+  setRefreshKey?: (key: boolean) => void;
+  refreshKey?: boolean;
 }
 
 const JsonEditor = ({
@@ -30,6 +33,9 @@ const JsonEditor = ({
   onSave,
   onVersionCreated,
   onDocumentsChanged,
+  toBeUpdatedVersionId,
+  setRefreshKey,
+  refreshKey,
 }: JsonEditorProps) => {
   console.log(
     "JsonEditor rendered with initialContent:",
@@ -49,6 +55,7 @@ const JsonEditor = ({
   const autoSaveTimerRef = useRef<number | null>(null);
   const lastSavedContentRef = useRef<string>(initialContent);
   const hasChangesRef = useRef<boolean>(false);
+  const contentRef = useRef(content);
 
   // Format JSON on initial load or when initialContent changes
   useEffect(() => {
@@ -106,9 +113,22 @@ const JsonEditor = ({
 
     autoSaveTimerRef.current = window.setInterval(() => {
       if (currentVersionId && hasChangesRef.current && isValid) {
-        updateCurrentVersion();
+        // Get the latest content from the ref
+        let latestContent = contentRef.current;
+        // Try to format it
+        try {
+          const parsed = JSON.parse(latestContent);
+          latestContent = JSON.stringify(parsed, null, 2);
+        } catch (e) {
+          // If invalid, you can skip or save as-is
+          // return; // Uncomment to skip saving invalid JSON
+        }
+        updateCurrentVersionMain(latestContent);
+        if (setRefreshKey) {
+          setRefreshKey(!refreshKey);
+        }
       }
-    }, 30000); // Auto-save every 30 seconds
+    }, 5000);
 
     return () => {
       if (autoSaveTimerRef.current) {
@@ -116,6 +136,10 @@ const JsonEditor = ({
       }
     };
   }, [currentVersionId, isValid]);
+
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   const validateJson = (value: string): boolean => {
     try {
@@ -133,6 +157,7 @@ const JsonEditor = ({
   };
 
   const handleEditorChange = (value: string | undefined) => {
+    console.log("handleEditorChange", value);
     if (value !== undefined) {
       setContent(value);
       const valid = validateJson(value);
@@ -187,23 +212,45 @@ const JsonEditor = ({
   };
 
   // Update the current version without creating a new one (for auto-save)
-  const updateCurrentVersion = async () => {
-    if (!currentVersionId || !isValid) return;
+  const updateCurrentVersionMain = async (contentToSave: string) => {
+    console.log("updateCurrentVersionMain", contentToSave);
+    if (!toBeUpdatedVersionId || !isValid) return;
+    // Log the changes since last save
+
+    if (contentToSave !== lastSavedContentRef.current) {
+      console.log("Changes since last save:");
+      console.log("Previous content:", lastSavedContentRef.current);
+      console.log("Current content:", contentToSave);
+      // Simple line-by-line diff
+      const prevLines = lastSavedContentRef.current.split('\n');
+      const currLines = contentToSave.split('\n');
+      prevLines.forEach((line, idx) => {
+        if (currLines[idx] !== line) {
+          console.log(`Line ${idx + 1} changed from:`, line, "to:", currLines[idx]);
+        }
+      });
+      if (currLines.length > prevLines.length) {
+        for (let i = prevLines.length; i < currLines.length; i++) {
+          console.log(`Line ${i + 1} added:`, currLines[i]);
+        }
+      }
+    }
     setIsSaving(true);
     try {
-      // Call backend to update version content
-      await fetch(`/api/versions/${currentVersionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
-      lastSavedContentRef.current = content;
+      await updateCurrentVersion(toBeUpdatedVersionId, contentToSave);
+      lastSavedContentRef.current = contentToSave;
       hasChangesRef.current = false;
       setError(null);
       console.log("Auto-saved changes to current version");
+      // Notify parent to refresh VersionHistory and DiffViewer
+      if (onVersionCreated) {
+        onVersionCreated();
+      }
+      if (onDocumentsChanged) {
+        onDocumentsChanged();
+      }
     } catch (err) {
       console.error("Failed to auto-save changes:", err);
-      // Don't show error to user for auto-save failures
     } finally {
       setIsSaving(false);
     }

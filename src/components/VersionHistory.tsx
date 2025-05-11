@@ -10,12 +10,14 @@ interface VersionHistoryProps {
   documentId: string;
   onSelectVersion: (version: JsonVersion) => void;
   refreshKey?: boolean;
+  setToBeUpdatedVersionId: (id: string) => void;
 }
 
 const VersionHistory = ({
   documentId,
   onSelectVersion,
   refreshKey,
+  setToBeUpdatedVersionId,
 }: VersionHistoryProps) => {
   const [versions, setVersions] = useState<JsonVersion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -156,6 +158,9 @@ const VersionHistory = ({
             <div className="p-2">
               {versions.map((version, index) => {
                 const isHead = index === 0; // First version is the HEAD (most recent)
+                if (isHead) {
+                  setToBeUpdatedVersionId(version.id);
+                }
                 return (
                   <div
                     key={version.id}
