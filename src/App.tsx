@@ -3,6 +3,7 @@ import { useRoutes, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/home";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import EntryDashboard from "./components/EntryDashboard";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import routes from "tempo-routes";
 
@@ -27,8 +28,12 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/" element={<EntryDashboard />} />
+          <Route path="/demo" element={<EntryDashboard />} />
+          <Route path="/contact" element={<EntryDashboard />} />
+          <Route path="/faq" element={<EntryDashboard />} />
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Home />
