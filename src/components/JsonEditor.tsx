@@ -8,7 +8,7 @@ import {
   getVersions,
   updateCurrentVersion,
 } from "../services/api";
-import { Upload, Edit } from "lucide-react";
+import { Upload, Edit, CheckCircle } from "lucide-react";
 
 interface JsonEditorProps {
   documentId?: string;
@@ -60,7 +60,7 @@ const JsonEditor = ({
   // Format JSON on initial load or when initialContent changes
   useEffect(() => {
     try {
-      if (initialContent) {
+      if (initialContent && typeof initialContent === "string") {
         const parsed = JSON.parse(initialContent);
         const formatted = JSON.stringify(parsed, null, 2);
         setContent(formatted);
@@ -71,9 +71,11 @@ const JsonEditor = ({
     } catch (err) {
       console.error("Error formatting initial JSON:", err);
       // If parsing fails, still update the content
-      setContent(initialContent);
-      lastSavedContentRef.current = initialContent;
-      hasChangesRef.current = false;
+      if (typeof initialContent === "string") {
+        setContent(initialContent);
+        lastSavedContentRef.current = initialContent;
+        hasChangesRef.current = false;
+      }
     }
   }, [initialContent]);
 
@@ -183,7 +185,11 @@ const JsonEditor = ({
     setIsSaving(true);
     setSaveSuccess(false);
     try {
-      const newVersion = await createVersion(currentDocumentId, content, isAutoSave);
+      const newVersion = await createVersion(
+        currentDocumentId,
+        content,
+        isAutoSave,
+      );
       if (!isAutoSave && setCurrentVersionId) {
         setCurrentVersionId(newVersion.id);
       }
@@ -222,11 +228,16 @@ const JsonEditor = ({
       console.log("Previous content:", lastSavedContentRef.current);
       console.log("Current content:", contentToSave);
       // Simple line-by-line diff
-      const prevLines = lastSavedContentRef.current.split('\n');
-      const currLines = contentToSave.split('\n');
+      const prevLines = lastSavedContentRef.current.split("\n");
+      const currLines = contentToSave.split("\n");
       prevLines.forEach((line, idx) => {
         if (currLines[idx] !== line) {
-          console.log(`Line ${idx + 1} changed from:`, line, "to:", currLines[idx]);
+          console.log(
+            `Line ${idx + 1} changed from:`,
+            line,
+            "to:",
+            currLines[idx],
+          );
         }
       });
       if (currLines.length > prevLines.length) {
@@ -292,7 +303,7 @@ const JsonEditor = ({
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className="flex justify-between items-center p-4 bg-slate-100">
+      <div className="flex justify-between items-center p-4 bg-gradient-to-r from-slate-100 to-slate-50 border-b border-slate-200">
         <div>
           {isEditingName ? (
             <div className="flex items-center">
@@ -300,7 +311,7 @@ const JsonEditor = ({
                 type="text"
                 value={documentName}
                 onChange={(e) => setDocumentName(e.target.value)}
-                className="text-xl font-semibold border border-blue-300 rounded px-2 py-1 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-xl font-semibold border border-blue-300 rounded-md px-3 py-1.5 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                 autoFocus
                 onBlur={() => setIsEditingName(false)}
                 onKeyDown={async (e) => {
@@ -313,44 +324,45 @@ const JsonEditor = ({
                   }
                 }}
               />
-              {/* <button
-                onClick={async () => {
-                  setIsEditingName(false);
-                  if (currentDocumentId) {
-                    try {
-                      await updateDocumentName(currentDocumentId, documentName);
-                      if (onDocumentsChanged) {
-                        onDocumentsChanged();
-                      }
-                    } catch (err) {
-                      console.error("Failed to update document name:", err);
-                      setError("Failed to update document name");
-                    }
-                  }
-                }}
-                className="text-blue-500 hover:text-blue-700"
-              >
-                Save
-              </button> */}
             </div>
           ) : (
-            <h2
-              className="text-xl font-semibold cursor-pointer hover:text-blue-600 flex items-center"
-              onClick={() => setIsEditingName(true)}
-            >
-              {documentName}
-              <Edit className="h-4 w-4 ml-2 text-gray-500" />
-            </h2>
+            <div className="flex flex-col">
+              <h2
+                className="text-xl font-semibold cursor-pointer hover:text-blue-600 flex items-center group"
+                onClick={() => setIsEditingName(true)}
+              >
+                {documentName}
+                <Edit className="h-4 w-4 ml-2 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </h2>
+              <div className="flex items-center mt-1">
+                {hasChangesRef.current && (
+                  <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium mr-2">
+                    Unsaved changes
+                  </span>
+                )}
+                {hasChangesRef.current && (
+                  <span className="text-xs text-slate-500">
+                    Auto-save in 30s
+                  </span>
+                )}
+              </div>
+            </div>
           )}
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <p className="text-red-500 text-sm mt-1 flex items-center">
+              <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+              {error}
+            </p>
+          )}
           {saveSuccess && (
-            <p className="text-green-600 text-sm">
-              ✓ Version saved successfully
+            <p className="text-green-600 text-sm mt-1 flex items-center">
+              <CheckCircle className="h-4 w-4 mr-1" /> Version saved
+              successfully
             </p>
           )}
           {isCreatingDocument && (
-            <p className="text-blue-500 text-sm flex items-center">
-              <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>{" "}
+            <p className="text-blue-500 text-sm flex items-center mt-1">
+              <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
               Creating document...
             </p>
           )}
@@ -366,30 +378,35 @@ const JsonEditor = ({
           <Button
             variant="outline"
             onClick={() => document.getElementById("json-file-upload")?.click()}
+            className="border-slate-300 hover:bg-slate-100 transition-colors"
           >
             <Upload className="w-4 h-4 mr-2" /> Upload JSON
           </Button>
-          <Button onClick={formatJson} variant="outline" disabled={!isValid}>
+          <Button
+            onClick={formatJson}
+            variant="outline"
+            disabled={!isValid}
+            className="border-slate-300 hover:bg-slate-100 transition-colors"
+          >
             Format JSON
           </Button>
           <Button
             onClick={handleSave}
             disabled={!isValid || isSaving || !hasChangesRef.current}
+            className="bg-blue-600 hover:bg-blue-700 transition-colors group relative overflow-hidden"
           >
-            {isSaving ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Saving...
-              </>
-            ) : (
-              "Save Version"
-            )}
-          </Button>
-          {hasChangesRef.current && (
-            <span className="text-xs text-slate-500 self-center ml-2">
-              Auto-save enabled (30s)
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-blue-500 to-blue-600 opacity-30 transition-transform group-hover:translate-x-0"></span>
+            <span className="relative flex items-center">
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>Save Version</>
+              )}
             </span>
-          )}
+          </Button>
         </div>
       </div>
       <div className="flex-grow">
