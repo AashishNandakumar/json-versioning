@@ -28,7 +28,7 @@ export default function EntryDashboard() {
         <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100 via-transparent to-transparent opacity-40 animate-pulse"></div>
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-100 opacity-20 blur-3xl"></div>
         <div className="absolute top-1/2 -left-20 h-60 w-60 rounded-full bg-indigo-100 opacity-20 blur-3xl"></div>
-        
+
         <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
           <nav className="flex items-center justify-between py-4">
             <div className="flex items-center">
@@ -78,7 +78,7 @@ export default function EntryDashboard() {
                 </span>
               </Button>
               <Button variant="outline" size="lg" className="px-8 transition-all hover:bg-blue-50 hover:text-blue-700" onClick={() => { console.log('Login account clicked'); window.location.replace('/login'); }}>
-                
+
                 <span className="relative flex items-center">
                   Log in to your account
                 </span>
@@ -127,7 +127,7 @@ export default function EntryDashboard() {
                 </div>
                 <span className="text-green-400">]</span><br/>
               </div>
-              <span className="text-green-400">}</span>
+              <span className="text-green-400">{`}`}</span>
             </code>
           </pre>
           <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent"></div>
