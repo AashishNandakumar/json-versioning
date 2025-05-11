@@ -6,6 +6,7 @@ import {
   ReactNode,
 } from "react";
 import { User, AuthState } from "../types/auth";
+import axios from "axios";
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
@@ -15,15 +16,8 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Dummy users for development
-const dummyUsers = [
-  {
-    id: "1",
-    email: "user@example.com",
-    name: "Test User",
-    password: "password",
-  },
-];
+// API base URL - should be configured from environment variables in production
+const API_URL = "http://localhost:5000/api";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -34,56 +28,75 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
-    // Check for existing token in cookies
-    const token = getCookie("auth_token");
-    if (token) {
-      try {
-        // In a real app, we would validate the token here
-        const userData = JSON.parse(localStorage.getItem("user") || "{}");
-        if (userData.id) {
-          setAuthState({
-            user: userData,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } else {
-          setAuthState((prev) => ({ ...prev, isLoading: false }));
-        }
-      } catch (error) {
-        console.error("Error parsing user data:", error);
+    const validateToken = async () => {
+      // Check for existing token in cookies
+      const token = getCookie("auth_token");
+      if (!token) {
         setAuthState((prev) => ({ ...prev, isLoading: false }));
+        return;
       }
-    } else {
-      setAuthState((prev) => ({ ...prev, isLoading: false }));
-    }
+
+      try {
+        // Validate token with backend
+        // API endpoint: GET /api/auth/validate
+        // Headers: { Authorization: `Bearer ${token}` }
+        // Response: { user: User }
+        const response = await axios.get(`${API_URL}/auth/validate`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // If token is valid, set auth state
+        setAuthState({
+          user: response.data.user,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+      } catch (error) {
+        console.error("Error validating token:", error);
+        // If token validation fails, clear auth state
+        deleteCookie("auth_token");
+        localStorage.removeItem("user");
+        setAuthState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      }
+    };
+
+    validateToken();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    const user = dummyUsers.find(
-      (u) => u.email === email && u.password === password,
-    );
+    try {
+      // API endpoint: POST /api/auth/login
+      // Request body: { email: string, password: string }
+      // Response: { token: string, user: User }
+      const response = await axios.post(`${API_URL}/auth/login`, {
+        email,
+        password,
+      });
 
-    if (user) {
-      const { password: _, ...userWithoutPassword } = user;
-      const token = generateToken(user.id);
+      const { token, user } = response.data;
 
-      // Store in cookies and localStorage
+      // Store token in cookies and user data in localStorage
       setCookie("auth_token", token, 7); // 7 days
-      localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+      localStorage.setItem("user", JSON.stringify(user));
 
       setAuthState({
-        user: userWithoutPassword,
+        user,
         token,
         isAuthenticated: true,
         isLoading: false,
       });
 
       return true;
+    } catch (error) {
+      console.error("Login error:", error);
+      return false;
     }
-
-    return false;
   };
 
   const register = async (
@@ -91,39 +104,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     email: string,
     password: string,
   ): Promise<boolean> => {
-    // Check if user already exists
-    const userExists = dummyUsers.some((u) => u.email === email);
+    try {
+      // API endpoint: POST /api/auth/register
+      // Request body: { name: string, email: string, password: string }
+      // Response: { token: string, user: User }
+      const response = await axios.post(`${API_URL}/auth/register`, {
+        name,
+        email,
+        password,
+      });
 
-    if (userExists) {
+      const { token, user } = response.data;
+
+      // Store token in cookies and user data in localStorage
+      setCookie("auth_token", token, 7); // 7 days
+      localStorage.setItem("user", JSON.stringify(user));
+
+      setAuthState({
+        user,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Registration error:", error);
       return false;
     }
-
-    // Create new user
-    const newUser = {
-      id: `${dummyUsers.length + 1}`,
-      email,
-      name,
-      password,
-    };
-
-    // In a real app, we would save this to a database
-    dummyUsers.push(newUser);
-
-    // Auto login after registration
-    return login(email, password);
   };
 
-  const logout = () => {
-    // Clear cookies and localStorage
-    deleteCookie("auth_token");
-    localStorage.removeItem("user");
+  const logout = async () => {
+    try {
+      // API endpoint: POST /api/auth/logout
+      // Headers: { Authorization: `Bearer ${token}` }
+      // This is optional - some implementations handle logout only on client side
+      if (authState.token) {
+        await axios.post(
+          `${API_URL}/auth/logout`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${authState.token}` },
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear cookies and localStorage regardless of API response
+      deleteCookie("auth_token");
+      localStorage.removeItem("user");
 
-    setAuthState({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
+      setAuthState({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }
   };
 
   return (
@@ -148,17 +186,7 @@ export const useAuth = () => {
   return context;
 };
 
-// Helper functions for JWT and cookies
-function generateToken(userId: string): string {
-  // In a real app, we would use a proper JWT library
-  // This is just a dummy implementation
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const payload = btoa(JSON.stringify({ sub: userId, iat: Date.now() }));
-  const signature = btoa(`dummy-signature-${userId}-${Date.now()}`);
-
-  return `${header}.${payload}.${signature}`;
-}
-
+// Helper functions for cookies
 function setCookie(name: string, value: string, days: number) {
   const date = new Date();
   date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);

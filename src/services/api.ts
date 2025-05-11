@@ -15,6 +15,35 @@ import { create } from "jsondiffpatch";
 // In a real application, this would be an environment variable
 const API_URL = "http://localhost:5000/api";
 
+// Helper to get JWT token from cookies
+function getAuthToken(): string | null {
+  const name = "auth_token=";
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const ca = decodedCookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1);
+    if (c.indexOf(name) === 0) return c.substring(name.length, c.length);
+  }
+  return null;
+}
+
+// Create an axios instance with interceptor to add Authorization header
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken();
+    if (token && config.headers) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Mock implementation for demo purposes
 let documents: JsonDocument[] = [];
 let versions: JsonVersion[] = [];
@@ -227,7 +256,7 @@ export const createDocument = async (
   name: string = "Untitled Document",
 ): Promise<JsonDocument> => {
   try {
-    const response = await axios.post(`${API_URL}/documents`, {
+    const response = await api.post('/documents', {
       content,
       name,
     });
@@ -254,7 +283,7 @@ export const createDocument = async (
  */
 export const getDocuments = async (): Promise<JsonDocument[]> => {
   try {
-    const response = await axios.get(`${API_URL}/documents`);
+    const response = await api.get('/documents');
     return response.data;
     // Mock implementation:
     // return documents;
@@ -286,7 +315,7 @@ export const updateDocumentName = async (
   name: string,
 ): Promise<JsonDocument> => {
   try {
-    const response = await axios.patch(`${API_URL}/documents/${id}`, { name });
+    const response = await api.patch(`/documents/${id}`, { name });
     return response.data;
     // Mock implementation:
     // const documentIndex = documents.findIndex((doc) => doc.id === id);
@@ -317,7 +346,7 @@ export const updateDocumentName = async (
  */
 export const getDocument = async (id: string): Promise<JsonDocument> => {
   try {
-    const response = await axios.get(`${API_URL}/documents/${id}`);
+    const response = await api.get(`/documents/${id}`);
     return response.data;
     // Mock implementation:
     // const document = documents.find((doc) => doc.id === id);
@@ -354,8 +383,8 @@ export const createVersion = async (
   isAutoSave: boolean,
 ): Promise<JsonVersion> => {
   try {
-    const response = await axios.post(
-      `${API_URL}/documents/${documentId}/versions`,
+    const response = await api.post(
+      `/documents/${documentId}/versions`,
       { content, isAutoSave },
     );
     return response.data;
@@ -382,8 +411,8 @@ export const updateCurrentVersion = async (
 ): Promise<JsonDocument> => {
   try {
     console.log("Updating current version:", documentId, content);
-    const response = await axios.put(
-      `${API_URL}/documents/${documentId}/current-version`,
+    const response = await api.put(
+      `/documents/${documentId}/current-version`,
       { content },
     );
     console.log("Updated current version:", response.data);
@@ -419,8 +448,8 @@ export const getVersions = async (
   documentId: string,
 ): Promise<JsonVersion[]> => {
   try {
-    const response = await axios.get(
-      `${API_URL}/documents/${documentId}/versions`,
+    const response = await api.get(
+      `/documents/${documentId}/versions`,
     );
     return response.data;
     // Mock implementation:
@@ -457,8 +486,8 @@ export const mergeVersions = async (
   versionId: string,
 ): Promise<JsonDocument> => {
   try {
-    const response = await axios.post(
-      `${API_URL}/documents/${documentId}/versions/${versionId}/merge`,
+    const response = await api.post(
+      `/documents/${documentId}/versions/${versionId}/merge`,
     );
     return response.data;
     // Mock implementation:
@@ -491,8 +520,8 @@ export const getVersion = async (
   versionId: string,
 ): Promise<JsonVersion> => {
   try {
-    const response = await axios.get(
-      `${API_URL}/documents/${documentId}/versions/${versionId}`,
+    const response = await api.get(
+      `/documents/${documentId}/versions/${versionId}`,
     );
     return response.data;
     // Mock implementation:
